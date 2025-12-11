@@ -1,36 +1,30 @@
-#thanks to https://docs.python.org/3/library/csv.html
+# thanks to https://docs.python.org/3/library/csv.html
+# thanks to https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.groupby.html
 import csv
+import json
 
-def get_agent_time(filename:str) -> list[dict[str, str|float]]:
+import pandas as pd
+from pandas import DataFrame
+
+
+def get_agent_time(filename:str) -> DataFrame:
     # define storage dicts/lists
-    agent_counts = {}
-    total_active_days = {}
-    total_hold_days = {}
-    data = []
+    agent_names = []
+    active_days = []
+    hold_days = []
 
-    # organize data into counts, active time, hold time by agent name
+    # retrieve agent names, active days, and hold days from the csv file
     with open('data/FY20-25.csv', newline='', encoding='utf-8') as csvfile:
         reader = csv.reader(csvfile)
         next(reader)
         for row in reader:
-            agent = row[1]
-            active_days = row[3]
-            hold_days = row[4]
-            if agent == "":
-                agent = "Unknown"
-            if agent not in agent_counts:
-                agent_counts[agent] = 1
-                total_active_days[agent] = float(active_days)
-                total_hold_days[agent] = float(hold_days)
-            else:
-                agent_counts[agent] += 1
-                total_active_days[agent] += float(active_days)
-                total_hold_days[agent] += float(hold_days)
+            agent_names.append(row[1] if row[1] != "" else "unknown")
+            active_days.append(float(row[3]))
+            hold_days.append(float(row[4]))
 
-    # get averages and create dicts from the data
-    for agent, count in list(agent_counts.items())[:16]:
-        avg_active_days = total_active_days[agent] / count
-        avg_hold_days = total_hold_days[agent] / count
-        datum = {"agent": agent, "avg_active_days": avg_active_days, "avg_hold_days": avg_hold_days}
-        data.append(datum)
-    return data
+    # sort and average with pandas
+    dataframe = pd.DataFrame({"agent_name": agent_names, "active_days": active_days, "hold_days": hold_days})
+    sorted_data = dataframe.groupby(["agent_name"]).mean()
+    return sorted_data.reset_index()
+
+get_agent_time('data/FY20-25.csv')
